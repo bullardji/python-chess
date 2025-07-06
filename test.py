@@ -4931,6 +4931,41 @@ class CrazyhouseTestCase(unittest.TestCase):
         self.assertFalse(board.is_irreversible(chess.Move.null()))
 
 
+class GPUBoardParityTestCase(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        try:
+            import cupy
+            if cupy.cuda.runtime.getDeviceCount() <= 0:
+                raise RuntimeError("no GPU found")
+            try:
+                from chess.gpu import GPUBoard
+            except Exception:
+                from chess import GPUBoard  # type: ignore
+            cls.GPUBoard = GPUBoard
+        except Exception as err:
+            raise unittest.SkipTest(str(err))
+
+    def compare_boards(self, fen: str):
+        board_cpu = chess.Board(fen)
+        board_gpu = self.GPUBoard(fen)
+        self.assertEqual(board_cpu.fen(), board_gpu.fen())
+        self.assertEqual(board_cpu.turn, board_gpu.turn)
+        self.assertEqual(board_cpu.is_check(), board_gpu.is_check())
+        self.assertEqual(sorted(board_cpu.legal_moves), sorted(board_gpu.legal_moves))
+
+    def test_starting_position(self):
+        self.compare_boards(chess.STARTING_FEN)
+
+    def test_midgame_position(self):
+        fen = "rnbq1rk1/ppp1bpp1/4pn1p/3p2B1/2PP4/2N1PN2/PP3PPP/R2QKB1R w KQ - 0 7"
+        self.compare_boards(fen)
+
+    def test_endgame_position(self):
+        fen = "6k1/5ppp/1p6/8/6P1/6K1/5P2/8 w - - 0 1"
+        self.compare_boards(fen)
+
 class GiveawayTestCase(unittest.TestCase):
 
     def test_antichess_pgn(self):

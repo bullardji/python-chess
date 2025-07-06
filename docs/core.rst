@@ -117,6 +117,21 @@ Board
 .. autoclass:: chess.BaseBoard
     :members:
 
+GPU support
+-----------
+
+python-chess can optionally accelerate some operations on a GPU using
+``cupy``. Check :func:`chess.is_gpu_available()` to see if a compatible
+device is accessible. Use :class:`chess.GPUBoard` as a drop-in
+replacement for :class:`chess.Board`. If no GPU is available then the
+class behaves exactly like :class:`chess.Board`.
+
+.. autofunction:: chess.is_gpu_available
+
+.. autoclass:: chess.GPUBoard
+    :members:
+    :inherited-members:
+
 Outcome
 -------
 

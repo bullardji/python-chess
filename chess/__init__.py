@@ -4398,3 +4398,59 @@ except Exception:  # pragma: no cover - optional dependency missing
     GPU_BB_DIAG_ATTACKS = None  # type: ignore
     GPU_BB_FILE_ATTACKS = None  # type: ignore
     GPU_BB_RANK_ATTACKS = None  # type: ignore
+    def gpu_ray(a: Square, b: Square) -> Bitboard:
+        return ray(a, b)
+    def gpu_between(a: Square, b: Square) -> Bitboard:
+        return between(a, b)
+    def gpu_lsb(bb: Bitboard) -> int:
+        return lsb(bb)
+    def gpu_msb(bb: Bitboard) -> int:
+        return msb(bb)
+    def gpu_popcount(bb: Bitboard) -> int:
+        return popcount(bb)
+    def gpu_flip_vertical(bb: Bitboard) -> Bitboard:
+        return flip_vertical(bb)
+    def gpu_flip_horizontal(bb: Bitboard) -> Bitboard:
+        return flip_horizontal(bb)
+    def gpu_flip_diagonal(bb: Bitboard) -> Bitboard:
+        return flip_diagonal(bb)
+    def gpu_flip_anti_diagonal(bb: Bitboard) -> Bitboard:
+        return flip_anti_diagonal(bb)
+    def gpu_shift_down(b: Bitboard) -> Bitboard:
+        return shift_down(b)
+    def gpu_shift_2_down(b: Bitboard) -> Bitboard:
+        return shift_2_down(b)
+    def gpu_shift_up(b: Bitboard) -> Bitboard:
+        return shift_up(b)
+    def gpu_shift_2_up(b: Bitboard) -> Bitboard:
+        return shift_2_up(b)
+    def gpu_shift_right(b: Bitboard) -> Bitboard:
+        return shift_right(b)
+    def gpu_shift_2_right(b: Bitboard) -> Bitboard:
+        return shift_2_right(b)
+    def gpu_shift_left(b: Bitboard) -> Bitboard:
+        return shift_left(b)
+    def gpu_shift_2_left(b: Bitboard) -> Bitboard:
+        return shift_2_left(b)
+    def gpu_shift_up_left(b: Bitboard) -> Bitboard:
+        return shift_up_left(b)
+    def gpu_shift_up_right(b: Bitboard) -> Bitboard:
+        return shift_up_right(b)
+    def gpu_shift_down_left(b: Bitboard) -> Bitboard:
+        return shift_down_left(b)
+    def gpu_shift_down_right(b: Bitboard) -> Bitboard:
+        return shift_down_right(b)
+    def gpu_scan_reversed(bb: Bitboard) -> Iterator[Square]:
+        return scan_reversed(bb)
+
+
+class GPUBoard(Board):
+    """GPU accelerated variant of :class:`Board`.
+
+    Uses :mod:`cupy` for certain operations when a compatible GPU is
+    available. If no GPU is detected, all functionality behaves like
+    :class:`Board`.
+    """
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)

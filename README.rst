@@ -88,6 +88,7 @@ Features
 --------
 
 * Includes mypy typings.
+
 * GPU acceleration via :class:`chess.gpu.GPUBoard` when ``cupy`` and a
   compatible device are available.
 * GPU helpers mirror common bitboard utilities:

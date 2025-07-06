@@ -5098,7 +5098,6 @@ class GpuModeTestCase(unittest.TestCase):
         self.assertTrue(gpu.is_game_over())
         self.assertEqual(cpu.outcome(), gpu.outcome())
 
-
 if __name__ == "__main__":
     verbosity = sum(arg.count("v") for arg in sys.argv if all(c == "v" for c in arg.lstrip("-")))
     verbosity += sys.argv.count("--verbose")

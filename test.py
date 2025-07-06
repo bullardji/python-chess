@@ -4977,6 +4977,39 @@ class GiveawayTestCase(unittest.TestCase):
             self.assertEqual(game.end().board().fen(), "8/6k1/3K4/8/8/3k4/8/8 w - - 4 33")
 
 
+class GpuModeTestCase(unittest.TestCase):
+
+    def test_gpu_lookup_tables(self):
+        if not chess.gpu.is_gpu_available():
+            self.skipTest("GPU not available")
+        self.assertIsNotNone(chess.gpu.GPU_BB_RANK_MASKS)
+        self.assertEqual(len(chess.gpu.GPU_BB_RANK_MASKS), 64)
+
+    def test_gpu_board_instantiation(self):
+        board = chess.gpu.GPUBoard()
+        self.assertIsInstance(board, chess.Board)
+
+    def test_gpu_available(self):
+        self.assertIsInstance(chess.gpu.is_gpu_available(), bool)
+
+    def test_gpu_perft(self):
+        board = chess.gpu.GPUBoard()
+
+        def cpu_perft(b: chess.Board, d: int) -> int:
+            if d == 0:
+                return 1
+            if d == 1:
+                return b.legal_moves.count()
+            total = 0
+            for move in list(b.legal_moves):
+                b.push(move)
+                total += cpu_perft(b, d - 1)
+                b.pop()
+            return total
+
+        self.assertEqual(board.perft(2), cpu_perft(chess.Board(), 2))
+
+
 if __name__ == "__main__":
     verbosity = sum(arg.count("v") for arg in sys.argv if all(c == "v" for c in arg.lstrip("-")))
     verbosity += sys.argv.count("--verbose")

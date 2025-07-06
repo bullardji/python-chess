@@ -5086,6 +5086,18 @@ class GpuModeTestCase(unittest.TestCase):
         gpu_ep = sorted(gpu_board.generate_legal_ep(), key=lambda m: m.uci())
         self.assertEqual(cpu_ep, gpu_ep)
 
+    def test_gpu_game_over(self):
+        if not chess.gpu.is_gpu_available():
+            self.skipTest("GPU not available")
+        cpu = chess.Board()
+        gpu = chess.gpu.GPUBoard()
+        for san in ["f3", "e5", "g4", "Qh4#"]:
+            cpu.push_san(san)
+            gpu.push_san(san)
+        self.assertTrue(cpu.is_game_over())
+        self.assertTrue(gpu.is_game_over())
+        self.assertEqual(cpu.outcome(), gpu.outcome())
+
 
 if __name__ == "__main__":
     verbosity = sum(arg.count("v") for arg in sys.argv if all(c == "v" for c in arg.lstrip("-")))

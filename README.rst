@@ -103,6 +103,9 @@ Features
 * ``GPUBoard`` provides GPU-backed move generation across the entire API
   through :meth:`chess.gpu.GPUBoard.generate_legal_moves` and related
   helpers.
+* Game termination can also be checked on the GPU via
+  :meth:`chess.gpu.GPUBoard.is_game_over` and
+  :meth:`chess.gpu.GPUBoard.outcome`.
 
 * Optional GPU acceleration using ``cupy``. Check
   ``chess.is_gpu_available()`` and use :class:`chess.GPUBoard`. When no

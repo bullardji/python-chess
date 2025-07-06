@@ -699,3 +699,12 @@ class GPUBoard(chess.Board):
         else:
             yield from self.generate_pseudo_legal_moves(from_mask, to_mask)
 
+    def outcome(self, *, claim_draw: bool = False) -> typing.Optional[chess.Outcome]:
+        """Returns the game :class:`~chess.Outcome` using GPU move generation."""
+        return super().outcome(claim_draw=claim_draw)
+
+    def is_game_over(self, *, claim_draw: bool = False) -> bool:
+        """Checks whether the current position is terminal."""
+        return self.outcome(claim_draw=claim_draw) is not None
+
+

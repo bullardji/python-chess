@@ -4328,3 +4328,13 @@ class SquareSet:
         True
         """
         return cls(BB_SQUARES[square])
+
+
+# Optional GPU accelerated board
+try:  # pragma: no cover - optional dependency
+    from .gpu import GPUBoard, GPU_AVAILABLE  # type: ignore
+except Exception:  # pragma: no cover - optional dependency missing
+    GPU_AVAILABLE = False  # type: ignore
+    class GPUBoard(Board):  # type: ignore
+        def __init__(self, *args, **kwargs) -> None:
+            raise RuntimeError("GPU support is unavailable")

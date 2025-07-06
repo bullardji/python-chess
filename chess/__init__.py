@@ -4331,9 +4331,24 @@ class SquareSet:
 
 # Optional GPU support
 try:
-    from .gpu import GPUBoard, is_gpu_available
+    from .gpu import (
+        GPUBoard,
+        is_gpu_available,
+        GPU_BB_RANK_MASKS,
+        GPU_BB_FILE_MASKS,
+        GPU_BB_DIAG_MASKS,
+        GPU_BB_KING_ATTACKS,
+        GPU_BB_KNIGHT_ATTACKS,
+        GPU_BB_PAWN_ATTACKS,
+    )
 except Exception:  # pragma: no cover - optional dependency missing
     GPUBoard = None  # type: ignore
     def is_gpu_available() -> bool:
         return False
+    GPU_BB_RANK_MASKS = None  # type: ignore
+    GPU_BB_FILE_MASKS = None  # type: ignore
+    GPU_BB_DIAG_MASKS = None  # type: ignore
+    GPU_BB_KING_ATTACKS = None  # type: ignore
+    GPU_BB_KNIGHT_ATTACKS = None  # type: ignore
+    GPU_BB_PAWN_ATTACKS = None  # type: ignore
 

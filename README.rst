@@ -82,6 +82,7 @@ Features
 --------
 
 * Includes mypy typings.
+* Optional GPU acceleration via :class:`chess.gpu.GPUBoard`.
 
 * IPython/Jupyter Notebook integration.
   `SVG rendering docs <https://python-chess.readthedocs.io/en/latest/svg.html>`_.

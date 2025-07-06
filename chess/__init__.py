@@ -4328,3 +4328,12 @@ class SquareSet:
         True
         """
         return cls(BB_SQUARES[square])
+
+# Optional GPU support
+try:
+    from .gpu import GPUBoard, is_gpu_available
+except Exception:  # pragma: no cover - optional dependency missing
+    GPUBoard = None  # type: ignore
+    def is_gpu_available() -> bool:
+        return False
+

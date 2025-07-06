@@ -4942,6 +4942,16 @@ class GiveawayTestCase(unittest.TestCase):
             self.assertEqual(game.end().board().fen(), "8/6k1/3K4/8/8/3k4/8/8 w - - 4 33")
 
 
+class GpuModeTestCase(unittest.TestCase):
+
+    def test_gpu_board_instantiation(self):
+        board = chess.gpu.GPUBoard()
+        self.assertIsInstance(board, chess.Board)
+
+    def test_gpu_available(self):
+        self.assertIsInstance(chess.gpu.is_gpu_available(), bool)
+
+
 if __name__ == "__main__":
     verbosity = sum(arg.count("v") for arg in sys.argv if all(c == "v" for c in arg.lstrip("-")))
     verbosity += sys.argv.count("--verbose")

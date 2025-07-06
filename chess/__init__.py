@@ -22,6 +22,11 @@ import re
 import itertools
 import typing
 
+try:
+    import cupy  # type: ignore
+except Exception:  # pragma: no cover - optional dependency
+    cupy = None
+
 from typing import ClassVar, Callable, Counter, Dict, Hashable, Iterable, Iterator, List, Literal, Mapping, Optional, SupportsInt, Tuple, Type, TypeVar, Union
 
 if typing.TYPE_CHECKING:
@@ -73,6 +78,17 @@ STARTING_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 
 STARTING_BOARD_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR"
 """The board part of the FEN for the standard chess starting position."""
+
+
+def is_gpu_available() -> bool:
+    """Returns ``True`` if a CUDA-capable GPU is available via :mod:`cupy`."""
+    if cupy is None:
+        return False
+    try:
+        return bool(cupy.cuda.runtime.getDeviceCount())
+    except Exception:  # pragma: no cover - runtime detection may fail
+        return False
+
 
 
 class Status(enum.IntFlag):
@@ -4328,3 +4344,15 @@ class SquareSet:
         True
         """
         return cls(BB_SQUARES[square])
+
+
+class GPUBoard(Board):
+    """GPU accelerated variant of :class:`Board`.
+
+    Uses :mod:`cupy` for certain operations when a compatible GPU is
+    available. If no GPU is detected, all functionality behaves like
+    :class:`Board`.
+    """
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)

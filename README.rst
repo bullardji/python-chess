@@ -65,6 +65,12 @@ Requires Python 3.8+. Download and install the latest release:
 
     pip install chess
 
+Optionally install ``cupy`` for GPU acceleration:
+
+::
+
+    pip install cupy
+
 
 `Documentation <https://python-chess.readthedocs.io/en/latest/>`__
 --------------------------------------------------------------------
@@ -83,6 +89,10 @@ Features
 
 * Includes mypy typings.
 * Optional GPU acceleration via :class:`chess.gpu.GPUBoard`.
+
+* Optional GPU acceleration using ``cupy``. Check
+  ``chess.is_gpu_available()`` and use :class:`chess.GPUBoard`. When no
+  compatible GPU is found, :class:`chess.Board` is used automatically.
 
 * IPython/Jupyter Notebook integration.
   `SVG rendering docs <https://python-chess.readthedocs.io/en/latest/svg.html>`_.

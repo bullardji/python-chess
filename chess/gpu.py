@@ -1,9 +1,9 @@
 """GPU-accelerated helpers for :mod:`chess`.
 
 This module provides :class:`GPUBoard`, a subclass of
-:class:`~chess.Board` that can optionally perform certain computations on
-a CUDA-capable GPU via :mod:`cupy`. If :mod:`cupy` is not available, the
-methods transparently fall back to their CPU counterparts.
+:class:`~chess.Board` that performs computations on a CUDA-capable GPU
+via :mod:`cupy`. When no compatible GPU is detected, the helpers raise
+``RuntimeError`` instead of silently falling back to the CPU.
 """
 
 from __future__ import annotations
@@ -64,6 +64,12 @@ __all__ = [
     "gpu_scan_reversed",
 ]
 
+
+def _require_gpu() -> None:
+    """Raises ``RuntimeError`` if no compatible GPU is available."""
+    if not GPU_AVAILABLE:
+        raise RuntimeError("GPU support is not available")
+
 if GPU_AVAILABLE:
     GPU_BB_RANK_MASKS = cp.asarray(chess.BB_RANK_MASKS, dtype=cp.uint64)
     GPU_BB_FILE_MASKS = cp.asarray(chess.BB_FILE_MASKS, dtype=cp.uint64)
@@ -104,6 +110,151 @@ def is_gpu_available() -> bool:
 
 
 def gpu_ray(a: chess.Square, b: chess.Square) -> chess.Bitboard:
+    """GPU version of :func:`chess.ray`. Raises if the GPU is unavailable."""
+    _require_gpu()
+    return int(cp.asnumpy(GPU_BB_RAYS[a, b]))
+
+
+def gpu_between(a: chess.Square, b: chess.Square) -> chess.Bitboard:
+    """GPU version of :func:`chess.between`. Raises if the GPU is unavailable."""
+    _require_gpu()
+    bb = GPU_BB_RAYS[a, b] & (
+        (cp.uint64(chess.BB_ALL) << a) ^ (cp.uint64(chess.BB_ALL) << b)
+    )
+    bb = bb & (bb - cp.uint64(1))
+    return int(cp.asnumpy(bb))
+
+
+def gpu_lsb(bb: chess.Bitboard) -> int:
+    """GPU version of :func:`chess.lsb`. Raises if the GPU is unavailable."""
+    _require_gpu()
+    v = int(cp.asnumpy(cp.bitwise_and(cp.uint64(bb), -cp.uint64(bb))))
+    return v.bit_length() - 1
+
+
+def gpu_msb(bb: chess.Bitboard) -> int:
+    """GPU version of :func:`chess.msb`. Raises if the GPU is unavailable."""
+    _require_gpu()
+    v = int(cp.asnumpy(cp.uint64(bb)))
+    return v.bit_length() - 1
+
+
+def gpu_popcount(bb: chess.Bitboard) -> int:
+    """GPU version of :func:`chess.popcount`. Raises if the GPU is unavailable."""
+    _require_gpu()
+    x = cp.uint64(bb)
+    x = x - ((x >> cp.uint64(1)) & cp.uint64(0x5555_5555_5555_5555))
+    x = (x & cp.uint64(0x3333_3333_3333_3333)) + ((x >> cp.uint64(2)) & cp.uint64(0x3333_3333_3333_3333))
+    x = (x + (x >> cp.uint64(4))) & cp.uint64(0x0f0f_0f0f_0f0f_0f0f)
+    x = (x * cp.uint64(0x0101_0101_0101_0101)) >> cp.uint64(56)
+    return int(cp.asnumpy(x))
+
+
+def gpu_flip_vertical(bb: chess.Bitboard) -> chess.Bitboard:
+    """GPU version of :func:`chess.flip_vertical`. Raises if GPU unavailable."""
+    _require_gpu()
+    x = cp.uint64(bb)
+    x = ((x >> cp.uint64(8)) & cp.uint64(0x00ff_00ff_00ff_00ff)) | ((x & cp.uint64(0x00ff_00ff_00ff_00ff)) << cp.uint64(8))
+    x = ((x >> cp.uint64(16)) & cp.uint64(0x0000_ffff_0000_ffff)) | ((x & cp.uint64(0x0000_ffff_0000_ffff)) << cp.uint64(16))
+    x = (x >> cp.uint64(32)) | ((x & cp.uint64(0x0000_0000_ffff_ffff)) << cp.uint64(32))
+    return int(cp.asnumpy(x))
+
+
+def gpu_flip_horizontal(bb: chess.Bitboard) -> chess.Bitboard:
+    """GPU version of :func:`chess.flip_horizontal`. Raises if GPU unavailable."""
+    _require_gpu()
+    x = cp.uint64(bb)
+    x = ((x >> cp.uint64(1)) & cp.uint64(0x5555_5555_5555_5555)) | ((x & cp.uint64(0x5555_5555_5555_5555)) << cp.uint64(1))
+    x = ((x >> cp.uint64(2)) & cp.uint64(0x3333_3333_3333_3333)) | ((x & cp.uint64(0x3333_3333_3333_3333)) << cp.uint64(2))
+    x = ((x >> cp.uint64(4)) & cp.uint64(0x0f0f_0f0f_0f0f_0f0f)) | ((x & cp.uint64(0x0f0f_0f0f_0f0f_0f0f)) << cp.uint64(4))
+    return int(cp.asnumpy(x))
+
+
+def gpu_flip_diagonal(bb: chess.Bitboard) -> chess.Bitboard:
+    """GPU version of :func:`chess.flip_diagonal`. Raises if GPU unavailable."""
+    _require_gpu()
+    x = cp.uint64(bb)
+    t = (x ^ (x << cp.uint64(28))) & cp.uint64(0x0f0f_0f0f_0000_0000)
+    x = x ^ t ^ (t >> cp.uint64(28))
+    t = (x ^ (x << cp.uint64(14))) & cp.uint64(0x3333_0000_3333_0000)
+    x = x ^ t ^ (t >> cp.uint64(14))
+    t = (x ^ (x << cp.uint64(7))) & cp.uint64(0x5500_5500_5500_5500)
+    x = x ^ t ^ (t >> cp.uint64(7))
+    return int(cp.asnumpy(x))
+
+
+def gpu_flip_anti_diagonal(bb: chess.Bitboard) -> chess.Bitboard:
+    """GPU version of :func:`chess.flip_anti_diagonal`. Raises if GPU unavailable."""
+    _require_gpu()
+    x = cp.uint64(bb)
+    t = x ^ (x << cp.uint64(36))
+    x = x ^ ((t ^ (x >> cp.uint64(36))) & cp.uint64(0xf0f0_f0f0_0f0f_0f0f))
+    t = (x ^ (x << cp.uint64(18))) & cp.uint64(0xcccc_0000_cccc_0000)
+    x = x ^ t ^ (t >> cp.uint64(18))
+    t = (x ^ (x << cp.uint64(9))) & cp.uint64(0xaa00_aa00_aa00_aa00)
+    x = x ^ t ^ (t >> cp.uint64(9))
+    return int(cp.asnumpy(x))
+
+
+def gpu_shift_down(b: chess.Bitboard) -> chess.Bitboard:
+    _require_gpu()
+    return int(cp.asnumpy(cp.uint64(b) >> cp.uint64(8)))
+
+
+def gpu_shift_2_down(b: chess.Bitboard) -> chess.Bitboard:
+    _require_gpu()
+    return int(cp.asnumpy(cp.uint64(b) >> cp.uint64(16)))
+
+
+def gpu_shift_up(b: chess.Bitboard) -> chess.Bitboard:
+    _require_gpu()
+    return int(cp.asnumpy((cp.uint64(b) << cp.uint64(8)) & cp.uint64(chess.BB_ALL)))
+
+
+def gpu_shift_2_up(b: chess.Bitboard) -> chess.Bitboard:
+    _require_gpu()
+    return int(cp.asnumpy((cp.uint64(b) << cp.uint64(16)) & cp.uint64(chess.BB_ALL)))
+
+
+def gpu_shift_right(b: chess.Bitboard) -> chess.Bitboard:
+    _require_gpu()
+    return int(cp.asnumpy((cp.uint64(b) << cp.uint64(1)) & cp.uint64(~chess.BB_FILE_A) & cp.uint64(chess.BB_ALL)))
+
+
+def gpu_shift_2_right(b: chess.Bitboard) -> chess.Bitboard:
+    _require_gpu()
+    return int(cp.asnumpy((cp.uint64(b) << cp.uint64(2)) & cp.uint64(~chess.BB_FILE_A) & cp.uint64(~chess.BB_FILE_B) & cp.uint64(chess.BB_ALL)))
+
+
+def gpu_shift_left(b: chess.Bitboard) -> chess.Bitboard:
+    _require_gpu()
+    return int(cp.asnumpy((cp.uint64(b) >> cp.uint64(1)) & cp.uint64(~chess.BB_FILE_H)))
+
+
+def gpu_shift_2_left(b: chess.Bitboard) -> chess.Bitboard:
+    _require_gpu()
+    return int(cp.asnumpy((cp.uint64(b) >> cp.uint64(2)) & cp.uint64(~chess.BB_FILE_G) & cp.uint64(~chess.BB_FILE_H)))
+
+
+def gpu_shift_up_left(b: chess.Bitboard) -> chess.Bitboard:
+    _require_gpu()
+    return int(cp.asnumpy((cp.uint64(b) << cp.uint64(7)) & cp.uint64(~chess.BB_FILE_H) & cp.uint64(chess.BB_ALL)))
+
+
+def gpu_shift_up_right(b: chess.Bitboard) -> chess.Bitboard:
+    _require_gpu()
+    return int(cp.asnumpy((cp.uint64(b) << cp.uint64(9)) & cp.uint64(~chess.BB_FILE_A) & cp.uint64(chess.BB_ALL)))
+
+
+def gpu_shift_down_left(b: chess.Bitboard) -> chess.Bitboard:
+    _require_gpu()
+    return int(cp.asnumpy((cp.uint64(b) >> cp.uint64(9)) & cp.uint64(~chess.BB_FILE_H)))
+
+
+def gpu_shift_down_right(b: chess.Bitboard) -> chess.Bitboard:
+    _require_gpu()
+    return int(cp.asnumpy((cp.uint64(b) >> cp.uint64(7)) & cp.uint64(~chess.BB_FILE_A)))
+=======
     """GPU version of :func:`chess.ray`. Falls back to CPU if necessary."""
     if GPU_AVAILABLE:
         return int(cp.asnumpy(GPU_BB_RAYS[a, b]))
@@ -273,6 +424,8 @@ def gpu_shift_down_right(b: chess.Bitboard) -> chess.Bitboard:
 
 def gpu_scan_reversed(bb: chess.Bitboard) -> typing.Iterator[chess.Square]:
     """GPU-enabled version of :func:`chess.scan_reversed`."""
+    _require_gpu()
+
     while bb:
         sq = gpu_msb(bb)
         yield sq
@@ -282,34 +435,61 @@ def gpu_scan_reversed(bb: chess.Bitboard) -> typing.Iterator[chess.Square]:
 class GPUBoard(chess.Board):
     """A board with optional GPU-accelerated methods."""
 
+    def __init__(self, *args, **kwargs) -> None:
+        _require_gpu()
+        super().__init__(*args, **kwargs)
+        self._sync_gpu()
+
+    def _sync_gpu(self) -> None:
+        self._gpu_pawns = cp.uint64(self.pawns)
+        self._gpu_knights = cp.uint64(self.knights)
+        self._gpu_bishops = cp.uint64(self.bishops)
+        self._gpu_rooks = cp.uint64(self.rooks)
+        self._gpu_queens = cp.uint64(self.queens)
+        self._gpu_kings = cp.uint64(self.kings)
+        self._gpu_promoted = cp.uint64(self.promoted)
+        self._gpu_occupied = cp.uint64(self.occupied)
+        self._gpu_occupied_co = [
+            cp.uint64(self.occupied_co[chess.WHITE]),
+            cp.uint64(self.occupied_co[chess.BLACK]),
+        ]
+
+    def push(self, move: chess.Move) -> None:
+        super().push(move)
+        self._sync_gpu()
+
+    def pop(self) -> chess.Move:
+        move = super().pop()
+        self._sync_gpu()
+        return move
+
     def attackers_mask(
         self,
         color: chess.Color,
         square: chess.Square,
         occupied: typing.Optional[chess.Bitboard] = None,
     ) -> chess.Bitboard:
-        """Like :meth:`chess.Board.attackers_mask` but uses the GPU when possible."""
-        if not GPU_AVAILABLE:
-            return super().attackers_mask(color, square, occupied)
+        """Like :meth:`chess.Board.attackers_mask` but uses the GPU."""
 
-        occ = self.occupied if occupied is None else occupied
-        rank_pieces = GPU_BB_RANK_MASKS[square] & cp.uint64(occ)
-        file_pieces = GPU_BB_FILE_MASKS[square] & cp.uint64(occ)
-        diag_pieces = GPU_BB_DIAG_MASKS[square] & cp.uint64(occ)
+        occ = self._gpu_occupied if occupied is None else cp.uint64(occupied)
+        rank_pieces = GPU_BB_RANK_MASKS[square] & occ
+        file_pieces = GPU_BB_FILE_MASKS[square] & occ
+        diag_pieces = GPU_BB_DIAG_MASKS[square] & occ
 
-        qr = cp.uint64(self.queens | self.rooks)
-        qb = cp.uint64(self.queens | self.bishops)
+        qr = self._gpu_queens | self._gpu_rooks
+        qb = self._gpu_queens | self._gpu_bishops
 
         attackers = (
-            (GPU_BB_KING_ATTACKS[square] & cp.uint64(self.kings))
-            | (GPU_BB_KNIGHT_ATTACKS[square] & cp.uint64(self.knights))
+
+            (GPU_BB_KING_ATTACKS[square] & self._gpu_kings)
+            | (GPU_BB_KNIGHT_ATTACKS[square] & self._gpu_knights)
             | (GPU_BB_RANK_ATTACKS[square][int(cp.asnumpy(rank_pieces))] & qr)
             | (GPU_BB_FILE_ATTACKS[square][int(cp.asnumpy(file_pieces))] & qr)
             | (GPU_BB_DIAG_ATTACKS[square][int(cp.asnumpy(diag_pieces))] & qb)
-            | (GPU_BB_PAWN_ATTACKS[not color][square] & cp.uint64(self.pawns))
+            | (GPU_BB_PAWN_ATTACKS[not color][square] & self._gpu_pawns)
         )
 
-        result = attackers & cp.uint64(self.occupied_co[color])
+        result = attackers & self._gpu_occupied_co[color]
         return int(result)
 
     def perft(self, depth: int) -> int:
@@ -328,13 +508,25 @@ class GPUBoard(chess.Board):
 
     def attacks_mask(self, square: chess.Square) -> chess.Bitboard:
         """Like :meth:`chess.Board.attacks_mask` but uses GPU tables."""
-        if not GPU_AVAILABLE:
-            return super().attacks_mask(square)
-
         bb_square = chess.BB_SQUARES[square]
 
         if bb_square & self.pawns:
             color = bool(bb_square & self.occupied_co[chess.WHITE])
+            return int(GPU_BB_PAWN_ATTACKS[color][square])
+        elif bb_square & self.knights:
+            return int(GPU_BB_KNIGHT_ATTACKS[square])
+        elif bb_square & self.kings:
+            return int(GPU_BB_KING_ATTACKS[square])
+        else:
+            attacks = 0
+            if bb_square & self.bishops or bb_square & self.queens:
+                occ = int(cp.asnumpy(GPU_BB_DIAG_MASKS[square] & self._gpu_occupied))
+                attacks = int(GPU_BB_DIAG_ATTACKS[square][occ])
+            if bb_square & self.rooks or bb_square & self.queens:
+                occ_rank = int(cp.asnumpy(GPU_BB_RANK_MASKS[square] & self._gpu_occupied))
+                occ_file = int(cp.asnumpy(GPU_BB_FILE_MASKS[square] & self._gpu_occupied))
+                attacks |= int(GPU_BB_RANK_ATTACKS[square][occ_rank])
+                attacks |= int(GPU_BB_FILE_ATTACKS[square][occ_file])
             return int(chess.gpu.GPU_BB_PAWN_ATTACKS[color][square])
         elif bb_square & self.knights:
             return int(chess.gpu.GPU_BB_KNIGHT_ATTACKS[square])
@@ -357,9 +549,6 @@ class GPUBoard(chess.Board):
         from_mask: chess.Bitboard = chess.BB_ALL,
         to_mask: chess.Bitboard = chess.BB_ALL,
     ) -> typing.Iterator[chess.Move]:
-        if not GPU_AVAILABLE:
-            yield from super().generate_pseudo_legal_ep(from_mask, to_mask)
-            return
 
         if not self.ep_square or not chess.BB_SQUARES[self.ep_square] & to_mask:
             return
@@ -382,9 +571,6 @@ class GPUBoard(chess.Board):
         from_mask: chess.Bitboard = chess.BB_ALL,
         to_mask: chess.Bitboard = chess.BB_ALL,
     ) -> typing.Iterator[chess.Move]:
-        if not GPU_AVAILABLE:
-            yield from super().generate_pseudo_legal_moves(from_mask, to_mask)
-            return
 
         our_pieces = self.occupied_co[self.turn]
 
@@ -445,9 +631,6 @@ class GPUBoard(chess.Board):
             yield from self.generate_pseudo_legal_ep(from_mask, to_mask)
 
     def pin_mask(self, color: chess.Color, square: chess.Square) -> chess.Bitboard:
-        if not GPU_AVAILABLE:
-            return super().pin_mask(color, square)
-
         king = self.king(color)
         if king is None:
             return chess.BB_ALL
@@ -476,9 +659,6 @@ class GPUBoard(chess.Board):
         return chess.BB_ALL
 
     def _ep_skewered(self, king: chess.Square, capturer: chess.Square) -> bool:
-        if not GPU_AVAILABLE:
-            return super()._ep_skewered(king, capturer)
-
         assert self.ep_square is not None
 
         last_double = self.ep_square + (-8 if self.turn == chess.WHITE else 8)
@@ -503,9 +683,6 @@ class GPUBoard(chess.Board):
         return False
 
     def _slider_blockers(self, king: chess.Square) -> chess.Bitboard:
-        if not GPU_AVAILABLE:
-            return super()._slider_blockers(king)
-
         rooks_and_queens = self.rooks | self.queens
         bishops_and_queens = self.bishops | self.queens
         snipers = (
@@ -530,8 +707,6 @@ class GPUBoard(chess.Board):
         return blockers & self.occupied_co[self.turn]
 
     def _is_safe(self, king: chess.Square, blockers: chess.Bitboard, move: chess.Move) -> bool:
-        if not GPU_AVAILABLE:
-            return super()._is_safe(king, blockers, move)
 
         if move.from_square == king:
             if self.is_castling(move):
@@ -557,9 +732,6 @@ class GPUBoard(chess.Board):
         from_mask: chess.Bitboard = chess.BB_ALL,
         to_mask: chess.Bitboard = chess.BB_ALL,
     ) -> typing.Iterator[chess.Move]:
-        if not GPU_AVAILABLE:
-            yield from super()._generate_evasions(king, checkers, from_mask, to_mask)
-            return
 
         sliders = checkers & (self.bishops | self.rooks | self.queens)
 
@@ -589,8 +761,6 @@ class GPUBoard(chess.Board):
                     yield from self.generate_pseudo_legal_ep(from_mask, to_mask)
 
     def _attacked_for_king(self, path: chess.Bitboard, occupied: chess.Bitboard) -> bool:
-        if not GPU_AVAILABLE:
-            return super()._attacked_for_king(path, occupied)
         return any(self.attackers_mask(not self.turn, sq, occupied) for sq in gpu_scan_reversed(path))
 
     def generate_castling_moves(
@@ -598,9 +768,6 @@ class GPUBoard(chess.Board):
         from_mask: chess.Bitboard = chess.BB_ALL,
         to_mask: chess.Bitboard = chess.BB_ALL,
     ) -> typing.Iterator[chess.Move]:
-        if not GPU_AVAILABLE:
-            yield from super().generate_castling_moves(from_mask, to_mask)
-            return
 
         if self.is_variant_end():
             return
@@ -644,9 +811,6 @@ class GPUBoard(chess.Board):
         from_mask: chess.Bitboard = chess.BB_ALL,
         to_mask: chess.Bitboard = chess.BB_ALL,
     ) -> typing.Iterator[chess.Move]:
-        if not GPU_AVAILABLE:
-            yield from super().generate_legal_moves(from_mask, to_mask)
-            return
 
         if self.is_variant_end():
             return
@@ -667,3 +831,15 @@ class GPUBoard(chess.Board):
         else:
             yield from self.generate_pseudo_legal_moves(from_mask, to_mask)
 
+
+    def to_board(self) -> chess.Board:
+        """Returns a CPU :class:`chess.Board` with the same state."""
+        return chess.Board(self.fen())
+
+    def outcome(self, *, claim_draw: bool = False) -> typing.Optional[chess.Outcome]:
+        """Returns the game :class:`~chess.Outcome` using GPU move generation."""
+        return super().outcome(claim_draw=claim_draw)
+
+    def is_game_over(self, *, claim_draw: bool = False) -> bool:
+        """Checks whether the current position is terminal."""
+        return self.outcome(claim_draw=claim_draw) is not None

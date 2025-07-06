@@ -4936,14 +4936,10 @@ class GPUBoardParityTestCase(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         try:
-            import cupy
-            if cupy.cuda.runtime.getDeviceCount() <= 0:
+            from chess import gpu
+            if not gpu.GPU_AVAILABLE:
                 raise RuntimeError("no GPU found")
-            try:
-                from chess.gpu import GPUBoard
-            except Exception:
-                from chess import GPUBoard  # type: ignore
-            cls.GPUBoard = GPUBoard
+            cls.GPUBoard = gpu.GPUBoard
         except Exception as err:
             raise unittest.SkipTest(str(err))
 
@@ -4999,6 +4995,8 @@ class GpuModeTestCase(unittest.TestCase):
                 self.assertEqual(int(chess.gpu.GPU_BB_RANK_ATTACKS[sq][k]), v)
 
     def test_gpu_board_instantiation(self):
+        if not chess.gpu.is_gpu_available():
+            self.skipTest("GPU not available")
         board = chess.gpu.GPUBoard()
         self.assertIsInstance(board, chess.Board)
 
@@ -5006,6 +5004,8 @@ class GpuModeTestCase(unittest.TestCase):
         self.assertIsInstance(chess.gpu.is_gpu_available(), bool)
 
     def test_gpu_perft(self):
+        if not chess.gpu.is_gpu_available():
+            self.skipTest("GPU not available")
         board = chess.gpu.GPUBoard()
 
         def cpu_perft(b: chess.Board, d: int) -> int:
@@ -5086,6 +5086,17 @@ class GpuModeTestCase(unittest.TestCase):
         gpu_ep = sorted(gpu_board.generate_legal_ep(), key=lambda m: m.uci())
         self.assertEqual(cpu_ep, gpu_ep)
 
+    def test_gpu_game_over(self):
+        if not chess.gpu.is_gpu_available():
+            self.skipTest("GPU not available")
+        cpu = chess.Board()
+        gpu = chess.gpu.GPUBoard()
+        for san in ["f3", "e5", "g4", "Qh4#"]:
+            cpu.push_san(san)
+            gpu.push_san(san)
+        self.assertTrue(cpu.is_game_over())
+        self.assertTrue(gpu.is_game_over())
+        self.assertEqual(cpu.outcome(), gpu.outcome())
 
 if __name__ == "__main__":
     verbosity = sum(arg.count("v") for arg in sys.argv if all(c == "v" for c in arg.lstrip("-")))

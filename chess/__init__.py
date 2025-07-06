@@ -4387,8 +4387,6 @@ try:
     )
 except Exception:  # pragma: no cover - optional dependency missing
     GPUBoard = None  # type: ignore
-    def is_gpu_available() -> bool:
-        return False
     GPU_BB_RANK_MASKS = None  # type: ignore
     GPU_BB_FILE_MASKS = None  # type: ignore
     GPU_BB_DIAG_MASKS = None  # type: ignore

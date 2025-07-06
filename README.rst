@@ -88,7 +88,9 @@ Features
 --------
 
 * Includes mypy typings.
-* Optional GPU acceleration via :class:`chess.gpu.GPUBoard`.
+
+* GPU acceleration via :class:`chess.gpu.GPUBoard` when ``cupy`` and a
+  compatible device are available.
 * GPU helpers mirror common bitboard utilities:
   :func:`chess.gpu.gpu_ray`, :func:`chess.gpu.gpu_between`,
   :func:`chess.gpu.gpu_lsb`, :func:`chess.gpu.gpu_msb`,
@@ -103,10 +105,14 @@ Features
 * ``GPUBoard`` provides GPU-backed move generation across the entire API
   through :meth:`chess.gpu.GPUBoard.generate_legal_moves` and related
   helpers.
+* Game termination can also be checked on the GPU via
+  :meth:`chess.gpu.GPUBoard.is_game_over` and
+  :meth:`chess.gpu.GPUBoard.outcome`.
+* Convert a ``GPUBoard`` back to a CPU ``Board`` with
+  :meth:`chess.gpu.GPUBoard.to_board`.
 
-* Optional GPU acceleration using ``cupy``. Check
-  ``chess.is_gpu_available()`` and use :class:`chess.GPUBoard`. When no
-  compatible GPU is found, :class:`chess.Board` is used automatically.
+* GPU support relies on ``cupy``. Check ``chess.is_gpu_available()`` before
+  instantiating :class:`chess.GPUBoard`; otherwise use :class:`chess.Board`.
 
 * IPython/Jupyter Notebook integration.
   `SVG rendering docs <https://python-chess.readthedocs.io/en/latest/svg.html>`_.

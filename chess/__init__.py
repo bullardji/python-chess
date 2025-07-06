@@ -4446,13 +4446,14 @@ except Exception:  # pragma: no cover - optional dependency missing
         return scan_reversed(bb)
 
 
-class GPUBoard(Board):
-    """GPU accelerated variant of :class:`Board`.
+if GPUBoard is None:
+    class GPUBoard(Board):
+        """GPU accelerated variant of :class:`Board`.
 
-    Uses :mod:`cupy` for certain operations when a compatible GPU is
-    available. If no GPU is detected, all functionality behaves like
-    :class:`Board`.
-    """
+        Uses :mod:`cupy` for certain operations when a compatible GPU is
+        available. If no GPU is detected, all functionality behaves like
+        :class:`Board`.
+        """
 
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
+        def __init__(self, *args, **kwargs) -> None:
+            super().__init__(*args, **kwargs)

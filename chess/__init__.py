@@ -4357,26 +4357,44 @@ try:
         GPU_BB_KING_ATTACKS,
         GPU_BB_KNIGHT_ATTACKS,
         GPU_BB_PAWN_ATTACKS,
+        GPU_BB_SQUARES,
+        GPU_BB_DIAG_ATTACKS,
+        GPU_BB_FILE_ATTACKS,
+        GPU_BB_RANK_ATTACKS,
+        gpu_lsb,
+        gpu_msb,
+        gpu_popcount,
+        GPU_BB_RAYS,
+        gpu_ray,
+        gpu_between,
+        gpu_flip_vertical,
+        gpu_flip_horizontal,
+        gpu_flip_diagonal,
+        gpu_flip_anti_diagonal,
+        gpu_shift_down,
+        gpu_shift_2_down,
+        gpu_shift_up,
+        gpu_shift_2_up,
+        gpu_shift_right,
+        gpu_shift_2_right,
+        gpu_shift_left,
+        gpu_shift_2_left,
+        gpu_shift_up_left,
+        gpu_shift_up_right,
+        gpu_shift_down_left,
+        gpu_shift_down_right,
+        gpu_scan_reversed,
     )
 except Exception:  # pragma: no cover - optional dependency missing
     GPUBoard = None  # type: ignore
-    def is_gpu_available() -> bool:
-        return False
     GPU_BB_RANK_MASKS = None  # type: ignore
     GPU_BB_FILE_MASKS = None  # type: ignore
     GPU_BB_DIAG_MASKS = None  # type: ignore
     GPU_BB_KING_ATTACKS = None  # type: ignore
     GPU_BB_KNIGHT_ATTACKS = None  # type: ignore
     GPU_BB_PAWN_ATTACKS = None  # type: ignore
-
-
-class GPUBoard(Board):
-    """GPU accelerated variant of :class:`Board`.
-
-    Uses :mod:`cupy` for certain operations when a compatible GPU is
-    available. If no GPU is detected, all functionality behaves like
-    :class:`Board`.
-    """
-
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
+    GPU_BB_SQUARES = None  # type: ignore
+    GPU_BB_RAYS = None  # type: ignore
+    GPU_BB_DIAG_ATTACKS = None  # type: ignore
+    GPU_BB_FILE_ATTACKS = None  # type: ignore
+    GPU_BB_RANK_ATTACKS = None  # type: ignore

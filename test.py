@@ -4936,14 +4936,10 @@ class GPUBoardParityTestCase(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         try:
-            import cupy
-            if cupy.cuda.runtime.getDeviceCount() <= 0:
+            from chess import gpu
+            if not gpu.GPU_AVAILABLE:
                 raise RuntimeError("no GPU found")
-            try:
-                from chess.gpu import GPUBoard
-            except Exception:
-                from chess import GPUBoard  # type: ignore
-            cls.GPUBoard = GPUBoard
+            cls.GPUBoard = gpu.GPUBoard
         except Exception as err:
             raise unittest.SkipTest(str(err))
 
@@ -4984,8 +4980,23 @@ class GpuModeTestCase(unittest.TestCase):
             self.skipTest("GPU not available")
         self.assertIsNotNone(chess.gpu.GPU_BB_RANK_MASKS)
         self.assertEqual(len(chess.gpu.GPU_BB_RANK_MASKS), 64)
+        self.assertEqual(len(chess.gpu.GPU_BB_FILE_MASKS), 64)
+        self.assertEqual(len(chess.gpu.GPU_BB_DIAG_MASKS), 64)
+        self.assertEqual(len(chess.gpu.GPU_BB_DIAG_ATTACKS), 64)
+        self.assertEqual(len(chess.gpu.GPU_BB_FILE_ATTACKS), 64)
+        self.assertEqual(len(chess.gpu.GPU_BB_RANK_ATTACKS), 64)
+
+        for sq in [chess.A1, chess.E4]:
+            for k, v in chess.BB_DIAG_ATTACKS[sq].items():
+                self.assertEqual(int(chess.gpu.GPU_BB_DIAG_ATTACKS[sq][k]), v)
+            for k, v in chess.BB_FILE_ATTACKS[sq].items():
+                self.assertEqual(int(chess.gpu.GPU_BB_FILE_ATTACKS[sq][k]), v)
+            for k, v in chess.BB_RANK_ATTACKS[sq].items():
+                self.assertEqual(int(chess.gpu.GPU_BB_RANK_ATTACKS[sq][k]), v)
 
     def test_gpu_board_instantiation(self):
+        if not chess.gpu.is_gpu_available():
+            self.skipTest("GPU not available")
         board = chess.gpu.GPUBoard()
         self.assertIsInstance(board, chess.Board)
 
@@ -4993,6 +5004,8 @@ class GpuModeTestCase(unittest.TestCase):
         self.assertIsInstance(chess.gpu.is_gpu_available(), bool)
 
     def test_gpu_perft(self):
+        if not chess.gpu.is_gpu_available():
+            self.skipTest("GPU not available")
         board = chess.gpu.GPUBoard()
 
         def cpu_perft(b: chess.Board, d: int) -> int:
@@ -5008,6 +5021,82 @@ class GpuModeTestCase(unittest.TestCase):
             return total
 
         self.assertEqual(board.perft(2), cpu_perft(chess.Board(), 2))
+
+    def test_gpu_ray_between(self):
+        if not chess.gpu.is_gpu_available():
+            self.skipTest("GPU not available")
+        for a in chess.SQUARES:
+            for b in chess.SQUARES:
+                self.assertEqual(chess.gpu.gpu_ray(a, b), chess.ray(a, b))
+                self.assertEqual(chess.gpu.gpu_between(a, b), chess.between(a, b))
+
+    def test_gpu_bitboard_helpers(self):
+        if not chess.gpu.is_gpu_available():
+            self.skipTest("GPU not available")
+        for bb in [0, 1, chess.BB_ALL, chess.BB_CORNERS, chess.BB_CENTER]:
+            self.assertEqual(chess.gpu.gpu_lsb(bb), chess.lsb(bb))
+            self.assertEqual(chess.gpu.gpu_msb(bb), chess.msb(bb))
+            self.assertEqual(chess.gpu.gpu_popcount(bb), chess.popcount(bb))
+            self.assertEqual(chess.gpu.gpu_flip_vertical(bb), chess.flip_vertical(bb))
+            self.assertEqual(chess.gpu.gpu_flip_horizontal(bb), chess.flip_horizontal(bb))
+            self.assertEqual(chess.gpu.gpu_flip_diagonal(bb), chess.flip_diagonal(bb))
+            self.assertEqual(chess.gpu.gpu_flip_anti_diagonal(bb), chess.flip_anti_diagonal(bb))
+            self.assertEqual(chess.gpu.gpu_shift_up(bb), chess.shift_up(bb))
+            self.assertEqual(chess.gpu.gpu_shift_down(bb), chess.shift_down(bb))
+            self.assertEqual(chess.gpu.gpu_shift_left(bb), chess.shift_left(bb))
+            self.assertEqual(chess.gpu.gpu_shift_right(bb), chess.shift_right(bb))
+
+    def test_gpu_move_generation(self):
+        if not chess.gpu.is_gpu_available():
+            self.skipTest("GPU not available")
+        cpu_board = chess.Board()
+        gpu_board = chess.gpu.GPUBoard()
+
+        cpu_moves = sorted(cpu_board.generate_legal_moves(), key=lambda m: m.uci())
+        gpu_moves = sorted(gpu_board.generate_legal_moves(), key=lambda m: m.uci())
+        self.assertEqual(cpu_moves, gpu_moves)
+
+        cpu_pseudo = sorted(cpu_board.generate_pseudo_legal_moves(), key=lambda m: m.uci())
+        gpu_pseudo = sorted(gpu_board.generate_pseudo_legal_moves(), key=lambda m: m.uci())
+        self.assertEqual(cpu_pseudo, gpu_pseudo)
+
+    def test_gpu_pin_and_castling(self):
+        if not chess.gpu.is_gpu_available():
+            self.skipTest("GPU not available")
+        fen = "rnb1k2r/ppp2ppp/5n2/3q4/1b1P4/2N5/PP3PPP/R1BQKBNR w KQkq - 3 7"
+        cpu_board = chess.Board(fen)
+        gpu_board = chess.gpu.GPUBoard(fen)
+        sq = chess.C3
+        self.assertEqual(
+            gpu_board.pin_mask(chess.WHITE, sq),
+            cpu_board.pin_mask(chess.WHITE, sq),
+        )
+
+        cpu_castling = sorted(cpu_board.generate_castling_moves(), key=lambda m: m.uci())
+        gpu_castling = sorted(gpu_board.generate_castling_moves(), key=lambda m: m.uci())
+        self.assertEqual(cpu_castling, gpu_castling)
+
+    def test_gpu_en_passant(self):
+        if not chess.gpu.is_gpu_available():
+            self.skipTest("GPU not available")
+        fen = "rnbqkbnr/pppp1ppp/8/4p3/3Pp3/8/PPP1PPPP/RNBQKBNR w KQkq e6 0 3"
+        cpu_board = chess.Board(fen)
+        gpu_board = chess.gpu.GPUBoard(fen)
+        cpu_ep = sorted(cpu_board.generate_legal_ep(), key=lambda m: m.uci())
+        gpu_ep = sorted(gpu_board.generate_legal_ep(), key=lambda m: m.uci())
+        self.assertEqual(cpu_ep, gpu_ep)
+
+    def test_gpu_game_over(self):
+        if not chess.gpu.is_gpu_available():
+            self.skipTest("GPU not available")
+        cpu = chess.Board()
+        gpu = chess.gpu.GPUBoard()
+        for san in ["f3", "e5", "g4", "Qh4#"]:
+            cpu.push_san(san)
+            gpu.push_san(san)
+        self.assertTrue(cpu.is_game_over())
+        self.assertTrue(gpu.is_game_over())
+        self.assertEqual(cpu.outcome(), gpu.outcome())
 
 
 if __name__ == "__main__":

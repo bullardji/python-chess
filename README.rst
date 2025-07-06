@@ -88,11 +88,30 @@ Features
 --------
 
 * Includes mypy typings.
-* Optional GPU acceleration via :class:`chess.gpu.GPUBoard`.
+* GPU acceleration via :class:`chess.gpu.GPUBoard` when ``cupy`` and a
+  compatible device are available.
+* GPU helpers mirror common bitboard utilities:
+  :func:`chess.gpu.gpu_ray`, :func:`chess.gpu.gpu_between`,
+  :func:`chess.gpu.gpu_lsb`, :func:`chess.gpu.gpu_msb`,
+  :func:`chess.gpu.gpu_popcount`, and transformations like
+  :func:`chess.gpu.gpu_flip_vertical`, :func:`chess.gpu.gpu_flip_horizontal`,
+  :func:`chess.gpu.gpu_flip_diagonal`, :func:`chess.gpu.gpu_flip_anti_diagonal`,
+  :func:`chess.gpu.gpu_shift_up`, :func:`chess.gpu.gpu_shift_down`,
+  :func:`chess.gpu.gpu_shift_left`, and :func:`chess.gpu.gpu_shift_right`.
+* Heavy lookup tables such as ``chess.gpu.GPU_BB_DIAG_ATTACKS``,
+  ``chess.gpu.GPU_BB_FILE_ATTACKS``, and ``chess.gpu.GPU_BB_RANK_ATTACKS``
+  are mirrored on the GPU for efficient access.
+* ``GPUBoard`` provides GPU-backed move generation across the entire API
+  through :meth:`chess.gpu.GPUBoard.generate_legal_moves` and related
+  helpers.
+* Game termination can also be checked on the GPU via
+  :meth:`chess.gpu.GPUBoard.is_game_over` and
+  :meth:`chess.gpu.GPUBoard.outcome`.
+* Convert a ``GPUBoard`` back to a CPU ``Board`` with
+  :meth:`chess.gpu.GPUBoard.to_board`.
 
-* Optional GPU acceleration using ``cupy``. Check
-  ``chess.is_gpu_available()`` and use :class:`chess.GPUBoard`. When no
-  compatible GPU is found, :class:`chess.Board` is used automatically.
+* GPU support relies on ``cupy``. Check ``chess.is_gpu_available()`` before
+  instantiating :class:`chess.GPUBoard`; otherwise use :class:`chess.Board`.
 
 * IPython/Jupyter Notebook integration.
   `SVG rendering docs <https://python-chess.readthedocs.io/en/latest/svg.html>`_.

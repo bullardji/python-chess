@@ -89,6 +89,20 @@ Features
 
 * Includes mypy typings.
 * Optional GPU acceleration via :class:`chess.gpu.GPUBoard`.
+* GPU helpers mirror common bitboard utilities:
+  :func:`chess.gpu.gpu_ray`, :func:`chess.gpu.gpu_between`,
+  :func:`chess.gpu.gpu_lsb`, :func:`chess.gpu.gpu_msb`,
+  :func:`chess.gpu.gpu_popcount`, and transformations like
+  :func:`chess.gpu.gpu_flip_vertical`, :func:`chess.gpu.gpu_flip_horizontal`,
+  :func:`chess.gpu.gpu_flip_diagonal`, :func:`chess.gpu.gpu_flip_anti_diagonal`,
+  :func:`chess.gpu.gpu_shift_up`, :func:`chess.gpu.gpu_shift_down`,
+  :func:`chess.gpu.gpu_shift_left`, and :func:`chess.gpu.gpu_shift_right`.
+* Heavy lookup tables such as ``chess.gpu.GPU_BB_DIAG_ATTACKS``,
+  ``chess.gpu.GPU_BB_FILE_ATTACKS``, and ``chess.gpu.GPU_BB_RANK_ATTACKS``
+  are mirrored on the GPU for efficient access.
+* ``GPUBoard`` provides GPU-backed move generation across the entire API
+  through :meth:`chess.gpu.GPUBoard.generate_legal_moves` and related
+  helpers.
 
 * Optional GPU acceleration using ``cupy``. Check
   ``chess.is_gpu_available()`` and use :class:`chess.GPUBoard`. When no
